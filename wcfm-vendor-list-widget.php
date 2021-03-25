@@ -3,11 +3,53 @@
 Plugin Name:  WCFM Vendor List Widget
 Plugin URI:   https://wearenoou.com
 Description:  Adds a dashboard widget that lists out all vendors who have zero products.
-Version:      0.0.1
+Version:      0.0.2
 Author:       Ben Hussenet - Noou
 Author URI:   https://wearenoou.com
 */
 
+function custom_wcfm_get_vendor_store_name_by_vendor( $vendor_id ) {
+		global $WCFM, $wpdb, $WCMp;
+  	
+  	$vendor_store = '';
+  	
+  	if( !$vendor_id ) return $vendor_store;
+  	$vendor_id = absint( $vendor_id );
+  	
+  	$marketplece = wcfm_is_marketplace();
+  	if( $marketplece == 'wcvendors' ) {
+  		$shop_name = get_user_meta( $vendor_id, 'pv_shop_name', true );
+			if( $shop_name ) $vendor_store = $shop_name;
+		} elseif( $marketplece == 'wcmarketplace' ) {
+			$vendor = get_wcmp_vendor( $vendor_id );
+			if( $vendor ) {
+				$shop_name = get_user_meta( $vendor_id , '_vendor_page_title', true);
+				$store_name = get_user_meta( $vendor_id, 'store_name', true );
+				if( $shop_name ) { $vendor_store = $shop_name; }
+			}
+		} elseif( $marketplece == 'wcpvendors' ) {
+			$vendor_data = get_term( $vendor_id, WC_PRODUCT_VENDORS_TAXONOMY );
+			$shop_name = $vendor_data->name;
+			if( $shop_name ) { $vendor_store = $shop_name; }
+		} elseif( $marketplece == 'dokan' ) {
+			$vendor_data = get_user_meta( $vendor_id, 'dokan_profile_settings', true );
+			$shop_name     = isset( $vendor_data['store_name'] ) ? esc_attr( $vendor_data['store_name'] ) : '';
+			$vendor_user   = get_user_by( 'id', $vendor_id );
+			if(  empty( $shop_name ) && $vendor_user ) {
+				$shop_name     = $vendor_user->display_name;
+			}
+			if( $shop_name ) { $vendor_store = $shop_name; }
+		} elseif( $marketplece == 'wcfmmarketplace' ) {
+			$shop_name     = get_user_meta( $vendor_id, 'store_name', true );
+			$vendor_user   = get_user_by( 'id', $vendor_id );
+			if(  empty( $shop_name ) && $vendor_user ) {
+				$shop_name     = $vendor_user->display_name;
+			}
+			if( $shop_name ) { $vendor_store = $shop_name; }
+		}
+		
+		return $vendor_store;
+	}
 
  function custom_wcfm_get_vendor_list( $all = false, $offset = '', $number = '', $search = '', $allow_vendors_list = '', $is_disabled_vendors = true, $vendor_search_data = array() ) {
   	global $WCFM;
@@ -135,12 +177,13 @@ Author URI:   https://wearenoou.com
 							$user_info = get_userdata($all_user->ID);
 							$user_email = $user_info->user_email;
 
-							$vendor_arr[$all_user->ID] = $user_email;
+							$vendor_arr[$all_user->ID] = [custom_wcfm_get_vendor_store_name_by_vendor( $all_user->ID ),$user_email];
 						}
 					}
 				}
 			}
 		}
+	// var_dump($vendor_arr);
 		return $vendor_arr;
 	}
 // Add Custom Dashboard Widget
@@ -158,6 +201,7 @@ add_action( 'wp_dashboard_setup', 'add_wcfm_vendors_no_products_dashboard_widget
 function wcfm_vendors_no_products_dashboard_widgets() {
 	global $WCFM;
 	$wcfm_vendors_array = custom_wcfm_get_vendor_list( true, $offset, $length, '', $search_vendor, false, $vendor_search_data );
+	//var_dump($wcfm_vendors_array);
 	if(!empty($wcfm_vendors_array)) {
 		echo '<table id="wcfm_vendors"><thead><tr><td>Name</td><td>Email</td></tr></thead><tbody>';
 		$index = 0;
@@ -166,11 +210,9 @@ function wcfm_vendors_no_products_dashboard_widgets() {
 			if($index != 0 ){
 			$total_products = wcfm_get_user_posts_count( $wcfm_vendors_id, 'product', apply_filters( 'wcfm_limit_check_status', 'any' ) );
 			if($total_products == 0 ) {
-			preg_match_all("/[\._a-zA-Z0-9-]+@[\._a-zA-Z0-9-]+/i", $wcfm_vendors_name, $email);
+		
 
-    		$name = array_shift(explode('-', $wcfm_vendors_name));
-
-				echo '<tr><td>'.$name.'</td><td>'.$email[0][0].'</td></tr>';
+				echo '<tr><td>'.$wcfm_vendors_name[0].'</td><td>'.$wcfm_vendors_name[1].'</td></tr>';
 			}
 		}
 		$index++;
