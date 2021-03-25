@@ -158,7 +158,6 @@ add_action( 'wp_dashboard_setup', 'add_wcfm_vendors_no_products_dashboard_widget
 function wcfm_vendors_no_products_dashboard_widgets() {
 	global $WCFM;
 	$wcfm_vendors_array = custom_wcfm_get_vendor_list( true, $offset, $length, '', $search_vendor, false, $vendor_search_data );
-	var_dump($wcfm_vendors_array);
 	if(!empty($wcfm_vendors_array)) {
 		echo '<table id="wcfm_vendors"><thead><tr><td>Name</td><td>Email</td></tr></thead><tbody>';
 		$index = 0;
